@@ -5,6 +5,7 @@ namespace AzureLibrary
 	{
 		public MyClass()
 		{
+			int i = 0;
 		}
 	}
 }
