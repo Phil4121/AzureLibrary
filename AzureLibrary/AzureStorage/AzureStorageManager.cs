@@ -11,6 +11,14 @@ namespace AzureLibrary.AzureStorage
 	{
 		private string _accountName;
 		private string _accountKey;
+		private string _containerName;
+
+		public string ContainerName
+		{
+			get{
+				return _containerName;
+			}
+		}
 
 		private CloudStorageAccount _account;
 
@@ -18,7 +26,7 @@ namespace AzureLibrary.AzureStorage
 
 		private CloudBlobContainer _container;
 
-		public AzureStorageManager(string accountName, string accountKey, string containerName, bool useSAS = true) 
+		public AzureStorageManager(string accountName, string accountKey, bool useSAS = true) 
 		{
 			this._accountName = accountName;
 			this._accountKey = accountKey;
@@ -33,8 +41,12 @@ namespace AzureLibrary.AzureStorage
 				var cred = new StorageCredentials(GetAccountSASToken());
 				_account = new CloudStorageAccount(cred, accountName, endpointSuffix: null, useHttps: true);
 			}
+		}
 
-			Init(containerName);
+		public async Task<bool> InitContainer(string ContainerName)
+		{
+			Init(ContainerName);
+			return await _container.ExistsAsync();
 		}
 
 		public async Task<bool> CreateContainerIfNotExists()
@@ -45,6 +57,13 @@ namespace AzureLibrary.AzureStorage
 		public async Task<bool> ContainerExists()
 		{
 			return await _container.ExistsAsync();
+		}
+
+		public async Task<bool> BlobExists(string blobName)
+		{
+			var blob = await GetBlobReference(blobName);
+
+			return await blob.ExistsAsync();
 		}
 
 		public async Task<string> UploadBlob(Stream fileStream)
@@ -95,6 +114,24 @@ namespace AzureLibrary.AzureStorage
 			}
 		}
 
+		public async Task<MemoryStream> DownloadBlob(string blobName)
+		{
+			try
+			{
+				var blob = await GetBlobReference(blobName);
+
+				using (var memoryStream = new MemoryStream())
+				{
+					await blob.DownloadToStreamAsync(memoryStream);
+					return memoryStream;
+				}
+			}
+			catch (Exception ex)
+			{
+				throw new Exception("Error while downloading blob!", ex);
+			}
+		}
+
 		public async Task<bool> DeleteBlob(String blobName)
 		{
 			try
@@ -112,14 +149,31 @@ namespace AzureLibrary.AzureStorage
 			}
 		}
 
-		private void Init(string containerName)
+		public async Task<bool> DeleteContainer()
+		{
+			try
+			{
+				await _container.DeleteAsync();
+				return true;
+			}
+			catch (Exception ex)
+			{
+				throw new Exception("Error while deleting container!", ex);
+			}
+		}
+
+		private async void Init(string containerName)
 		{
 			_client = _account.CreateCloudBlobClient();
 
 			if (!CheckContainerName(containerName))
 				throw new Exception("Containername is not valid!");
 
-			_container = _client.GetContainerReference(containerName.ToLower());
+			this._containerName = containerName.ToLower();
+
+			_container = _client.GetContainerReference(ContainerName);
+
+			await CreateContainerIfNotExists();
 		}
 
 		private async Task<CloudBlockBlob> GetBlobReference(string blobName)
@@ -134,7 +188,7 @@ namespace AzureLibrary.AzureStorage
 			return Guid.NewGuid().ToString();
 		}
 
-		public async Task<bool> ServiceIsReachable()
+		public async Task<bool> ContainerIsReachable()
 		{
 			return await _container.ExistsAsync();
 		}
@@ -151,8 +205,8 @@ namespace AzureLibrary.AzureStorage
 
 			SharedAccessAccountPolicy policy = new SharedAccessAccountPolicy()
 			{
-				Permissions = SharedAccessAccountPermissions.Read | SharedAccessAccountPermissions.Write | SharedAccessAccountPermissions.List,
-				Services = SharedAccessAccountServices.Blob | SharedAccessAccountServices.File,
+				Permissions = SharedAccessAccountPermissions.Read | SharedAccessAccountPermissions.Write | SharedAccessAccountPermissions.Create | SharedAccessAccountPermissions.Delete | SharedAccessAccountPermissions.List,
+				Services =  SharedAccessAccountServices.Blob | SharedAccessAccountServices.File,
 				ResourceTypes = SharedAccessAccountResourceTypes.Container | SharedAccessAccountResourceTypes.Object | SharedAccessAccountResourceTypes.Service,
 				SharedAccessExpiryTime = DateTime.UtcNow.AddHours(24),
 				Protocols = SharedAccessProtocol.HttpsOnly
