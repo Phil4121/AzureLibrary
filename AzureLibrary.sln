@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2012
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AzureLibrary", "AzureLibrary\AzureLibrary.csproj", "{47265879-DFC0-491E-8501-98E194ECFECD}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestDocArc", "TestDocArc\TestDocArc.csproj", "{3BA83DC6-5830-4523-988D-6555D14C9A06}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestAzureLibrary", "TestDocArc\TestAzureLibrary.csproj", "{3BA83DC6-5830-4523-988D-6555D14C9A06}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
